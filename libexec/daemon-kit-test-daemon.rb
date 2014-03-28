@@ -1,3 +1,8 @@
+require 'socket'
+require 'sleep_interval_randomizer'
+
+include SleepIntervalRandomizer
+
 # Change this file to be a wrapper around your daemon code.
 
 # Do your post daemonization configuration here
@@ -8,11 +13,18 @@ DaemonKit::Application.running! do |config|
   # config.trap( 'INT' ) do
   #   # do something clever
   # end
-  # config.trap( 'TERM', Proc.new { puts 'Going down' } )
+  config.trap('TERM', Proc.new { puts 'Going down' })
 end
 
-# Sample loop to show process
+SERVER = TCPServer.open(50000)
 loop do
-  DaemonKit.logger.info "I'm running"
-  sleep 60
+  Thread.start(SERVER.accept) do |client|
+    safely do
+      client.puts('Hello client')
+      loop do
+        client.puts(Time.now.ctime)
+        sleep next_interval
+      end
+    end
+  end
 end
